@@ -47,6 +47,13 @@ Install dependencies:
 pip install PyQt6 PyQt6-WebEngine
 ```
 
+Or:
+
+```bash
+sudo apt install python3-pyqt6
+sudo apt install python3-pyqt6.qtwebengine
+```
+
 ## Installation
 
 ```bash
