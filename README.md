@@ -23,7 +23,7 @@ GreenTux wraps WhatsApp Web in a polished native Linux desktop experience. Inste
 - **Desktop notifications** — WhatsApp notifications are forwarded natively to your desktop
 - **Microphone & camera support** — Permissions are granted automatically for voice and video calls
 - **KDE Plasma 6 / Wayland compatible** — Runs on Wayland via XCB compatibility layer
-- **Dark theme** — A custom stylesheet with a green accent that matches the GreenTux identity
+- **Dark theme** — A custom darkmode stylesheet
 - **Always up to date** — Loads `web.whatsapp.com` directly; no reverse engineering, no maintenance
 
 ## How It Works
@@ -80,23 +80,13 @@ Launch GreenTux and scan the QR code with your phone the first time. After that,
 
 | Action | Result |
 |--------|--------|
-| Left-click | Toggle window visibility |
+| **`Left-click`** | **Toggle window visibility** |
 
 ## Platform Notes
 
 ### KDE Plasma 6 / Wayland
 
 GreenTux forces `QT_QPA_PLATFORM=xcb` on startup to ensure tray icon signals work correctly under Wayland. This is handled automatically — no manual configuration needed.
-
-## Project Structure
-
-```
-greentux/
-├── greentux.py        # Main application entry point
-├── greentux_icon.png  # Application icon
-├── style.qss          # Dark theme stylesheet
-└── README.md
-```
 
 ## Configuration
 
