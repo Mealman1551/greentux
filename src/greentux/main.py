@@ -3,7 +3,6 @@ import os
 import signal
 
 signal.signal(signal.SIGINT, signal.SIG_DFL)
-
 os.environ["QT_QPA_PLATFORM"] = "xcb"
 
 from PyQt6.QtWidgets import QApplication
@@ -22,7 +21,7 @@ def main():
     tray = create_tray(app, window)
     set_tray(tray)
 
-    qss_path = resource_path("../themes/dark.qss")
+    qss_path = resource_path("themes/dark.qss")
     with open(qss_path, "r") as f:
         app.setStyleSheet(f.read())
 
