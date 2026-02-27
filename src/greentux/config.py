@@ -15,4 +15,4 @@ def resource_path(relative_path):
 PROFILE_DIR = os.path.expanduser("~/.greentux/profile")
 os.makedirs(PROFILE_DIR, exist_ok=True)
 
-TRAY_ICON_PATH = resource_path("assets/greentux_icon.png")
+TRAY_ICON_PATH = resource_path("../assets/greentux_icon.png")
