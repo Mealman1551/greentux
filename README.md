@@ -56,11 +56,20 @@ sudo apt install python3-pyqt6.qtwebengine
 
 ## Installation
 
+1. Download the tarball from the [Latest Release](https://github.com/Mealman1551/greentux/releases/latest)
+2. Unpack it and open a terminal in the extracted folder
+3. run:
+
 ```bash
-git clone https://github.com/Mealman1551/greentux.git
-cd greentux
-pip install -r requirements.txt
-python greentux.py
+./install.sh
+```
+Now it will install!
+You can find GreenTux in the start menu!
+
+To remove just go to `/opt/greentux` and open a terminal and run:
+
+```bash
+./remove.sh
 ```
 
 ## Usage
