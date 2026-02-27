@@ -73,8 +73,8 @@ Launch GreenTux and scan the QR code with your phone the first time. After that,
 |----------|--------|
 | **`Ctrl + Q`** | **Quit the application** |
 
-> [Warning]
->Closing the window does **not** quit the app — it minimizes GreenTux to the system tray. To fully exit, use **`Ctrl + Q`**.
+> [!Warning]
+> Closing the window does **not** quit the app  it minimizes GreenTux to the system tray. To fully exit, use **`Ctrl + Q`**.
 
 ### Tray Icon
 
