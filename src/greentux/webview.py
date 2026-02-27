@@ -1,0 +1,96 @@
+from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtWidgets import QSystemTrayIcon
+from PyQt6.QtWebEngineCore import (
+    QWebEngineProfile,
+    QWebEngineSettings,
+    QWebEnginePage,
+    QWebEngineNotification,
+)
+from PyQt6.QtCore import QUrl
+from .config import PROFILE_DIR
+
+_tray_ref = None  # globale referentie naar tray voor notificaties
+
+
+def set_tray(tray):
+    global _tray_ref
+    _tray_ref = tray
+
+
+class GreenTuxPage(QWebEnginePage):
+    def __init__(self, profile, parent=None):
+        super().__init__(profile, parent)
+        self.loadFinished.connect(self._on_load_finished)
+
+    def _on_load_finished(self, ok):
+        if ok:
+            # override Notification API zodat WhatsApp denkt dat het werkt
+            self.runJavaScript(
+                """
+                const _OrigNotification = window.Notification;
+                window.Notification = function(title, options) {
+                    return new _OrigNotification(title, options);
+                };
+                Object.defineProperty(window.Notification, 'permission', {
+                    get: () => 'granted'
+                });
+                window.Notification.requestPermission = () => Promise.resolve('granted');
+            """
+            )
+
+    def featurePermissionRequested(self, url, feature):
+        allowed = [
+            QWebEnginePage.Feature.Notifications,
+            QWebEnginePage.Feature.MediaAudioCapture,
+            QWebEnginePage.Feature.MediaVideoCapture,
+            QWebEnginePage.Feature.MediaAudioVideoCapture,
+            QWebEnginePage.Feature.DesktopAudioVideoCapture,
+        ]
+        if feature in allowed:
+            self.setFeaturePermission(
+                url, feature, QWebEnginePage.PermissionPolicy.PermissionGrantedByUser
+            )
+        else:
+            self.setFeaturePermission(
+                url, feature, QWebEnginePage.PermissionPolicy.PermissionDeniedByUser
+            )
+
+
+def handle_notification(notification: QWebEngineNotification):
+    notification.show()
+    if _tray_ref is not None:
+        _tray_ref.showMessage(
+            notification.title(),
+            notification.message(),
+            QSystemTrayIcon.MessageIcon.Information,
+            5000,  # 5 seconden zichtbaar
+        )
+
+
+def create_webview():
+    webview = QWebEngineView()
+
+    profile = QWebEngineProfile("greentux", webview)
+    profile.setPersistentStoragePath(PROFILE_DIR)
+    profile.setPersistentCookiesPolicy(
+        QWebEngineProfile.PersistentCookiesPolicy.AllowPersistentCookies
+    )
+    profile.setHttpCacheType(QWebEngineProfile.HttpCacheType.DiskHttpCache)
+    profile.setCachePath(PROFILE_DIR + "/cache")
+    profile.setNotificationPresenter(handle_notification)
+
+    profile.setHttpUserAgent(
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36"
+    )
+
+    page = GreenTuxPage(profile, webview)
+    webview.setPage(page)
+    webview.setZoomFactor(1.0)
+
+    settings = webview.settings()
+    settings.setAttribute(QWebEngineSettings.WebAttribute.JavascriptEnabled, True)
+    settings.setAttribute(QWebEngineSettings.WebAttribute.LocalStorageEnabled, True)
+
+    webview.load(QUrl("https://web.whatsapp.com"))
+    return webview
