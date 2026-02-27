@@ -93,7 +93,7 @@ GreenTux forces `QT_QPA_PLATFORM=xcb` on startup to ensure tray icon signals wor
 ```
 greentux/
 ├── greentux.py        # Main application entry point
-├── greentux_icon.svg  # Application icon
+├── greentux_icon.png  # Application icon
 ├── style.qss          # Dark theme stylesheet
 └── README.md
 ```
@@ -118,8 +118,8 @@ GPLv3
 
 ---
 
-###### &copy; 2026 Mealman1551
+Made with 💚 by Mealman1551
 
 ---
 
-Made with 💚 by Mealman1551
+###### &copy; 2026 Mealman1551
