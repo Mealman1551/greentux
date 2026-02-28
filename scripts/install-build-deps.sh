@@ -183,7 +183,7 @@ fi
 echo ""
 if [ "$FAILED" = true ]; then
     echo -e "${RED}Some dependencies failed to install.${NC}"
-    echo "Please open an issue on GitHub with the output above."
+    echo "This is not critical and will work fine in most cases, though you may occasionally encounter issues when compiling or running GreenTux."
     exit 1
 else
     echo -e "${GREEN}=== All done! ===${NC}"
