@@ -118,7 +118,7 @@ GPLv3
 
 ---
 
-Made with love by Mealman1551
+Made with 💚 by Mealman1551
 
 ---
 
