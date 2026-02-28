@@ -1,33 +1,60 @@
 #!/bin/bash
+# GreenTux - Nuitka compiler
+# Gebruik: ./scripts/compile.sh
+
 set -e
-cd ..
 
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+cd "$(dirname "$0")/.."
+
+echo -e "${GREEN}=== GreenTux - Build ===${NC}"
+echo ""
+
+# Controleer Nuitka
+if ! python3 -m nuitka --version &>/dev/null; then
+    echo -e "${RED}Nuitka not found. Run first:${NC}"
+    echo "  ./scripts/install-build-deps.sh"
+    exit 1
+fi
+
+# Controleer pip PyQt6 (niet systeem versie)
+PYQT6_PATH=$(python3 -c "import PyQt6; import os; print(os.path.dirname(PyQt6.__file__))" 2>/dev/null || echo "")
+if echo "$PYQT6_PATH" | grep -q "dist-packages"; then
+    echo -e "${RED}ERROR: System version of PyQt6 detected ($PYQT6_PATH)${NC}"
+    echo "This causes Qt version mismatches on other distros."
+    echo "Run ./scripts/install-build-deps.sh to fix this."
+    exit 1
+fi
+
+echo -e "${YELLOW}PyQt6: $PYQT6_PATH${NC}"
+echo -e "${YELLOW}Nuitka: $(python3 -m nuitka --version 2>&1 | head -1)${NC}"
+echo ""
+
+# Schoon oude build op
+rm -rf build/greentux.dist build/greentux.build
+
+# Compileer
 PYTHONPATH=src python3 -m nuitka \
-  --standalone \
-  --enable-plugin=pyqt6 \
-  --include-qt-plugins=sensible,webengine \
-  --include-data-dir=themes=themes \
-  --include-data-dir=assets=assets \
-  --include-package=greentux \
-  --output-dir=build \
-  greentux.py
+    --standalone \
+    --enable-plugin=pyqt6 \
+    --include-qt-plugins=sensible \
+    --include-data-dir=themes=themes \
+    --include-data-dir=assets=assets \
+    --include-package=greentux \
+    --output-dir=build \
+    greentux.py
 
-# WebEngine heeft deze resources nodig naast de binary
-QTWE=$(python3 -c "import PyQt6; import os; print(os.path.dirname(PyQt6.__file__))")/Qt6
+# Hernoem greentux.bin naar greentux
+mv build/greentux.dist/greentux.bin build/greentux.dist/greentux
 
-DIST=build/greentux.dist
-
-# Kopieer ontbrekende WebEngine bestanden
-mkdir -p $DIST/PyQt6/Qt6/translations
-mkdir -p $DIST/PyQt6/Qt6/resources  
-mkdir -p $DIST/PyQt6/Qt6/libexec
-
-cp -rn $QTWE/translations/qtwebengine_locales $DIST/PyQt6/Qt6/translations/ 2>/dev/null || true
-cp -n $QTWE/resources/qtwebengine_resources.pak $DIST/PyQt6/Qt6/resources/ 2>/dev/null || true
-cp -n $QTWE/resources/qtwebengine_devtools_resources.pak $DIST/PyQt6/Qt6/resources/ 2>/dev/null || true
-cp -n $QTWE/resources/qtwebengine_resources_100p.pak $DIST/PyQt6/Qt6/resources/ 2>/dev/null || true
-cp -n $QTWE/resources/icudtl.dat $DIST/PyQt6/Qt6/resources/ 2>/dev/null || true
-cp -n $QTWE/resources/v8_context_snapshot.bin $DIST/PyQt6/Qt6/resources/ 2>/dev/null || true
-cp -n $QTWE/libexec/QtWebEngineProcess $DIST/PyQt6/Qt6/libexec/ 2>/dev/null || true
-
-echo "Build klaar in $DIST"
+echo ""
+echo -e "${GREEN}=== Build complete ===${NC}"
+echo ""
+echo "Binary: build/greentux.dist/greentux"
+echo ""
+echo "To install:"
+echo "  ./install.sh"
