@@ -17,6 +17,7 @@ def resource_path(relative_path):
 PROFILE_DIR = os.path.expanduser("~/.greentux/profile")
 os.makedirs(PROFILE_DIR, exist_ok=True)
 
+# Map waar media (video, afbeeldingen, stickers, gif) naartoe worden gedownload
 MEDIA_DIR = os.path.expanduser("~/.greentux/viddl")
 os.makedirs(MEDIA_DIR, exist_ok=True)
 

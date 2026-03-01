@@ -9,9 +9,12 @@ from PyQt6.QtWebEngineCore import (
     QWebEngineDownloadRequest,
 )
 from PyQt6.QtCore import QUrl
-from .config import PROFILE_DIR, MEDIA_DIR
+from .config import PROFILE_DIR
 
 _tray_ref = None
+
+MEDIA_DIR = os.path.expanduser("~/.greentux/viddl")
+os.makedirs(MEDIA_DIR, exist_ok=True)
 
 
 def set_tray(tray):
@@ -69,12 +72,6 @@ def handle_notification(notification: QWebEngineNotification):
 
 
 def handle_download(download: QWebEngineDownloadRequest):
-    """
-    Verwerk alle downloads van WhatsApp Web.
-    Media (afbeeldingen, video, audio, stickers/gif/webp) gaan automatisch
-    naar MEDIA_DIR (~/.greentux/viddl).
-    Overige bestanden (pdf, docx, etc.) krijgen een opslaan-dialoog.
-    """
     suggested = download.suggestedFileName() or "download"
     mime = download.mimeType() or ""
     name_lower = suggested.lower()
@@ -84,8 +81,8 @@ def handle_download(download: QWebEngineDownloadRequest):
         or mime.startswith("image/")
         or mime.startswith("audio/")
         or name_lower.endswith(
-            (".mp4", ".webm", ".gif", ".webp", ".jpg", ".jpeg", ".png",
-             ".opus", ".ogg", ".aac", ".m4a")
+            (".mp4", ".webm", ".gif", ".webp", ".jpg", ".jpeg",
+             ".png", ".opus", ".ogg", ".aac", ".m4a", ".3gp")
         )
     )
 
@@ -118,15 +115,12 @@ def create_webview():
     profile.setHttpCacheType(QWebEngineProfile.HttpCacheType.DiskHttpCache)
     profile.setCachePath(PROFILE_DIR + "/cache")
     profile.setNotificationPresenter(handle_notification)
+    profile.downloadRequested.connect(handle_download)
 
-    # Recente Chrome UA — WhatsApp Web blokkeert media op oude browser versies
     profile.setHttpUserAgent(
         "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
         "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
     )
-
-    # Download handler — zonder dit worden alle downloads (ook media) genegeerd
-    profile.downloadRequested.connect(handle_download)
 
     page = GreenTuxPage(profile, webview)
     webview.setPage(page)
@@ -135,13 +129,11 @@ def create_webview():
     settings = webview.settings()
     settings.setAttribute(QWebEngineSettings.WebAttribute.JavascriptEnabled, True)
     settings.setAttribute(QWebEngineSettings.WebAttribute.LocalStorageEnabled, True)
-    # Nodig voor media rendering in WhatsApp Web
     settings.setAttribute(QWebEngineSettings.WebAttribute.AutoLoadImages, True)
     settings.setAttribute(QWebEngineSettings.WebAttribute.WebGLEnabled, True)
     settings.setAttribute(
         QWebEngineSettings.WebAttribute.PlaybackRequiresUserGesture, False
     )
-    settings.setAttribute(QWebEngineSettings.WebAttribute.ShowScrollBars, True)
 
     webview.load(QUrl("https://web.whatsapp.com"))
     return webview
