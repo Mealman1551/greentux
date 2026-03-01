@@ -1,6 +1,6 @@
 import os
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtWidgets import QSystemTrayIcon, QFileDialog
+from PyQt6.QtWidgets import QSystemTrayIcon
 from PyQt6.QtWebEngineCore import (
     QWebEngineProfile,
     QWebEngineSettings,
@@ -9,7 +9,7 @@ from PyQt6.QtWebEngineCore import (
     QWebEngineDownloadRequest,
 )
 from PyQt6.QtCore import QUrl
-from .config import PROFILE_DIR
+from .config import PROFILE_DIR, MEDIA_DIR
 
 _tray_ref = None
 
@@ -69,27 +69,38 @@ def handle_notification(notification: QWebEngineNotification):
 
 
 def handle_download(download: QWebEngineDownloadRequest):
-    """Verwerk downloads: video's, stickers, documenten, etc."""
-    # Stel standaard downloadmap in (~/ Downloads of home)
-    default_dir = os.path.join(os.path.expanduser("~"), "Downloads")
-    os.makedirs(default_dir, exist_ok=True)
-
+    """Auto-download media naar ~/.greentux/viddl, prompt voor de rest."""
+    mime = download.mimeType() or ""
     suggested = download.suggestedFileName() or "download"
-    default_path = os.path.join(default_dir, suggested)
 
-    # Vraag gebruiker waar op te slaan
-    save_path, _ = QFileDialog.getSaveFileName(
-        None,
-        "Opslaan als",
-        default_path,
+    # Media types die WhatsApp Web als download stuurt (video, gif, sticker, afbeelding)
+    is_media = (
+        mime.startswith("video/")
+        or mime.startswith("image/")
+        or mime.startswith("audio/")
+        or suggested.lower().endswith(
+            (".mp4", ".webm", ".gif", ".webp", ".jpg", ".jpeg", ".png", ".opus", ".ogg")
+        )
     )
 
-    if save_path:
-        download.setDownloadDirectory(os.path.dirname(save_path))
-        download.setDownloadFileName(os.path.basename(save_path))
+    if is_media:
+        os.makedirs(MEDIA_DIR, exist_ok=True)
+        download.setDownloadDirectory(MEDIA_DIR)
+        download.setDownloadFileName(suggested)
         download.accept()
     else:
-        download.cancel()
+        # Binaire bestanden (PDF, docx, etc.) → prompt zoals voorheen
+        from PyQt6.QtWidgets import QFileDialog
+
+        default_path = os.path.join(os.path.expanduser("~"), "Downloads", suggested)
+        os.makedirs(os.path.dirname(default_path), exist_ok=True)
+        save_path, _ = QFileDialog.getSaveFileName(None, "Opslaan als", default_path)
+        if save_path:
+            download.setDownloadDirectory(os.path.dirname(save_path))
+            download.setDownloadFileName(os.path.basename(save_path))
+            download.accept()
+        else:
+            download.cancel()
 
 
 def create_webview():
@@ -103,15 +114,12 @@ def create_webview():
     profile.setHttpCacheType(QWebEngineProfile.HttpCacheType.DiskHttpCache)
     profile.setCachePath(PROFILE_DIR + "/cache")
     profile.setNotificationPresenter(handle_notification)
+    profile.downloadRequested.connect(handle_download)
 
-    # Verbeterde user agent (recentere Chrome versie)
     profile.setHttpUserAgent(
         "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
         "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
     )
-
-    # Download handler voor video's, stickers, documenten
-    profile.downloadRequested.connect(handle_download)
 
     page = GreenTuxPage(profile, webview)
     webview.setPage(page)
@@ -120,15 +128,12 @@ def create_webview():
     settings = webview.settings()
     settings.setAttribute(QWebEngineSettings.WebAttribute.JavascriptEnabled, True)
     settings.setAttribute(QWebEngineSettings.WebAttribute.LocalStorageEnabled, True)
-    # Nodig voor media (video's, stickers, status updates)
     settings.setAttribute(QWebEngineSettings.WebAttribute.AutoLoadImages, True)
     settings.setAttribute(QWebEngineSettings.WebAttribute.WebGLEnabled, True)
     settings.setAttribute(
         QWebEngineSettings.WebAttribute.PlaybackRequiresUserGesture, False
     )
-    settings.setAttribute(
-        QWebEngineSettings.WebAttribute.AllowRunningInsecureContent, False
-    )
+    settings.setAttribute(QWebEngineSettings.WebAttribute.ShowScrollBars, True)
 
     webview.load(QUrl("https://web.whatsapp.com"))
     return webview
