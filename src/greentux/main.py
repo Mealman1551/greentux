@@ -4,6 +4,8 @@ import signal
 
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 os.environ["QT_QPA_PLATFORM"] = "xcb"
+os.environ.setdefault("QT_IM_MODULE", "xim")  # Fix voor accenten / dead keys / compose
+os.environ.setdefault("XMODIFIERS", "@im=none")
 
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtGui import QIcon
