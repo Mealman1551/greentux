@@ -9,11 +9,9 @@ from PyQt6.QtWebEngineCore import (
     QWebEngineDownloadRequest,
 )
 from PyQt6.QtCore import QUrl
-from .config import PROFILE_DIR
+from .config import PROFILE_DIR, MEDIA_DIR
 
 _tray_ref = None
-
-MEDIA_DIR = os.path.expanduser("~/.greentux/viddl")
 
 
 def set_tray(tray):
@@ -28,8 +26,8 @@ class GreenTuxPage(QWebEnginePage):
 
     def _on_load_finished(self, ok):
         if ok:
-            self.runJavaScript("""
-                // Notificaties
+            self.runJavaScript(
+                """
                 const _OrigNotification = window.Notification;
                 window.Notification = function(title, options) {
                     return new _OrigNotification(title, options);
@@ -38,14 +36,8 @@ class GreenTuxPage(QWebEnginePage):
                     get: () => 'granted'
                 });
                 window.Notification.requestPermission = () => Promise.resolve('granted');
-
-                // Intercept blob-downloads (WhatsApp download knop)
-                const _origCreateObjectURL = URL.createObjectURL;
-                URL.createObjectURL = function(blob) {
-                    const url = _origCreateObjectURL(blob);
-                    return url;
-                };
-            """)
+                """
+            )
 
     def featurePermissionRequested(self, url, feature):
         allowed = [
@@ -77,15 +69,23 @@ def handle_notification(notification: QWebEngineNotification):
 
 
 def handle_download(download: QWebEngineDownloadRequest):
+    """
+    Verwerk alle downloads van WhatsApp Web.
+    Media (afbeeldingen, video, audio, stickers/gif/webp) gaan automatisch
+    naar MEDIA_DIR (~/.greentux/viddl).
+    Overige bestanden (pdf, docx, etc.) krijgen een opslaan-dialoog.
+    """
     suggested = download.suggestedFileName() or "download"
     mime = download.mimeType() or ""
+    name_lower = suggested.lower()
 
     is_media = (
         mime.startswith("video/")
         or mime.startswith("image/")
         or mime.startswith("audio/")
-        or suggested.lower().endswith(
-            (".mp4", ".webm", ".gif", ".webp", ".jpg", ".jpeg", ".png", ".opus", ".ogg")
+        or name_lower.endswith(
+            (".mp4", ".webm", ".gif", ".webp", ".jpg", ".jpeg", ".png",
+             ".opus", ".ogg", ".aac", ".m4a")
         )
     )
 
@@ -95,8 +95,9 @@ def handle_download(download: QWebEngineDownloadRequest):
         download.setDownloadFileName(suggested)
         download.accept()
     else:
-        default_path = os.path.join(os.path.expanduser("~"), "Downloads", suggested)
-        os.makedirs(os.path.dirname(default_path), exist_ok=True)
+        downloads_dir = os.path.join(os.path.expanduser("~"), "Downloads")
+        os.makedirs(downloads_dir, exist_ok=True)
+        default_path = os.path.join(downloads_dir, suggested)
         save_path, _ = QFileDialog.getSaveFileName(None, "Opslaan als", default_path)
         if save_path:
             download.setDownloadDirectory(os.path.dirname(save_path))
@@ -117,13 +118,15 @@ def create_webview():
     profile.setHttpCacheType(QWebEngineProfile.HttpCacheType.DiskHttpCache)
     profile.setCachePath(PROFILE_DIR + "/cache")
     profile.setNotificationPresenter(handle_notification)
-    profile.downloadRequested.connect(handle_download)
 
-    # Gebruik een recente Chrome UA — WhatsApp blokkeert media op oude versies
+    # Recente Chrome UA — WhatsApp Web blokkeert media op oude browser versies
     profile.setHttpUserAgent(
         "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
         "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
     )
+
+    # Download handler — zonder dit worden alle downloads (ook media) genegeerd
+    profile.downloadRequested.connect(handle_download)
 
     page = GreenTuxPage(profile, webview)
     webview.setPage(page)
@@ -132,9 +135,12 @@ def create_webview():
     settings = webview.settings()
     settings.setAttribute(QWebEngineSettings.WebAttribute.JavascriptEnabled, True)
     settings.setAttribute(QWebEngineSettings.WebAttribute.LocalStorageEnabled, True)
+    # Nodig voor media rendering in WhatsApp Web
     settings.setAttribute(QWebEngineSettings.WebAttribute.AutoLoadImages, True)
     settings.setAttribute(QWebEngineSettings.WebAttribute.WebGLEnabled, True)
-    settings.setAttribute(QWebEngineSettings.WebAttribute.PlaybackRequiresUserGesture, False)
+    settings.setAttribute(
+        QWebEngineSettings.WebAttribute.PlaybackRequiresUserGesture, False
+    )
     settings.setAttribute(QWebEngineSettings.WebAttribute.ShowScrollBars, True)
 
     webview.load(QUrl("https://web.whatsapp.com"))
