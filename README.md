@@ -12,7 +12,7 @@
 
 ---
 
-GreenTux wraps WhatsApp Web in a polished native Linux desktop experience. Instead of keeping a browser tab open, you get a dedicated app with system tray integration, persistent sessions, and full desktop notification support -- all powered by an embedded Chromium engine that stays in sync with WhatsApp's own web interface automatically.
+GreenTux wraps WhatsApp Web in a polished native Linux desktop experience. Instead of keeping a browser tab open, you get a dedicated app with system tray integration, persistent sessions, and full desktop notification support. All powered by an embedded Chromium engine that stays in sync with WhatsApp's own web interface automatically.
 
 ## Features
 
@@ -34,8 +34,6 @@ GreenTux embeds a Chromium browser via **PyQt6-WebEngine** and loads `web.whatsa
 - **Desktop notifications** are captured via Qt's `setNotificationPresenter` and forwarded to the tray icon's `showMessage`
 
 ## Building and Installing
-
-> Build on **Ubuntu 24.04**. This ensures the widest compatibility with other distros due to the glibc version.
 
 **1. Install dependencies**
 
