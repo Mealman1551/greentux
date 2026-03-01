@@ -16,6 +16,8 @@ from .config import PROFILE_DIR
 _tray_ref = None  # globale referentie naar tray voor notificaties
 _webview_ref = None  # globale referentie naar webview voor blob video overlay
 
+DOWNLOAD_DIR = os.path.expanduser("~/.greentux/viddl")
+
 
 def set_tray(tray):
     global _tray_ref
@@ -38,9 +40,9 @@ def get_accept_language():
 
 class _PopupPage(QWebEnginePage):
     """
-    Tijdelijke pagina die popup-navigatie (nieuwe tab/venster) opvangt.
-    Blob-URLs worden als inline video overlay afgespeeld binnen de app.
-    Gewone URLs worden doorgestuurd naar de standaard browser.
+    Tijdelijke pagina die popup-navigatie opvangt (nieuwe tab/venster).
+    - blob: URL  → inline video overlay in de app zelf
+    - gewone URL → openen in standaard browser
     """
 
     def __init__(self, profile, parent=None):
@@ -110,7 +112,7 @@ class GreenTuxPage(QWebEnginePage):
     def createWindow(self, window_type):
         """
         WhatsApp Web opent video's en bijlagen soms in een nieuw venster/tab.
-        We vangen dit op met een tijdelijke pagina en handelen de URL zelf af.
+        We vangen dit op en handelen de URL intern af.
         """
         return _PopupPage(self.profile(), self.parent())
 
@@ -144,13 +146,16 @@ def handle_notification(notification: QWebEngineNotification):
 
 
 def handle_download(download: QWebEngineDownloadRequest):
-    downloads_dir = os.path.expanduser("~/.greentux/viddl")
-    os.makedirs(downloads_dir, exist_ok=True)
+    """
+    Alle downloads (video, afbeelding, sticker, audio, document) worden
+    opgeslagen in ~/.greentux/viddl
+    """
+    os.makedirs(DOWNLOAD_DIR, exist_ok=True)
     suggested = download.suggestedFileName()
-    download.setDownloadDirectory(downloads_dir)
+    download.setDownloadDirectory(DOWNLOAD_DIR)
     download.setDownloadFileName(suggested)
     download.accept()
-    print(f"Downloaden: {downloads_dir}/{suggested}")
+    print(f"[GreenTux] Download gestart: {DOWNLOAD_DIR}/{suggested}")
 
 
 def create_webview():
