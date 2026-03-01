@@ -90,7 +90,7 @@ def handle_download(download: QWebEngineDownloadRequest):
     download.setDownloadDirectory(downloads_dir)
     download.setDownloadFileName(suggested)
     download.accept()
-    print(f"Downloaden: {downloads_dir}/{suggested}")
+    print(f"Downloading: {downloads_dir}/{suggested}")
 
 
 def create_webview():
