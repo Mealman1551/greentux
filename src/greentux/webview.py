@@ -1,3 +1,5 @@
+import os
+
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import QSystemTrayIcon
 from PyQt6.QtWebEngineCore import (
@@ -5,11 +7,13 @@ from PyQt6.QtWebEngineCore import (
     QWebEngineSettings,
     QWebEnginePage,
     QWebEngineNotification,
+    QWebEngineDownloadRequest,
 )
 from PyQt6.QtCore import QUrl, QLocale
+from PyQt6.QtGui import QDesktopServices
 from .config import PROFILE_DIR
 
-_tray_ref = None
+_tray_ref = None  # globale referentie naar tray voor notificaties
 
 
 def set_tray(tray):
@@ -18,14 +22,11 @@ def set_tray(tray):
 
 
 def get_accept_language():
-
     locale = QLocale.system()
-    lang = locale.name()
     short = locale.bcp47Name()
     lang_only = short.split("-")[0]
 
     if lang_only == short.lower():
-        # taal zonder regio, bijv. 'eo'
         return f"{lang_only},en;q=0.8"
     else:
         return f"{lang_only},{short};q=0.9,en;q=0.8"
@@ -34,6 +35,7 @@ def get_accept_language():
 class GreenTuxPage(QWebEnginePage):
     def __init__(self, profile, parent=None):
         super().__init__(profile, parent)
+        self._blank_page = None
         self.loadFinished.connect(self._on_load_finished)
 
     def _on_load_finished(self, ok):
@@ -81,6 +83,16 @@ def handle_notification(notification: QWebEngineNotification):
         )
 
 
+def handle_download(download: QWebEngineDownloadRequest):
+    downloads_dir = os.path.expanduser("~/.greentux/viddl")
+    os.makedirs(downloads_dir, exist_ok=True)
+    suggested = download.suggestedFileName()
+    download.setDownloadDirectory(downloads_dir)
+    download.setDownloadFileName(suggested)
+    download.accept()
+    print(f"Downloaden: {downloads_dir}/{suggested}")
+
+
 def create_webview():
     webview = QWebEngineView()
 
@@ -92,6 +104,7 @@ def create_webview():
     profile.setHttpCacheType(QWebEngineProfile.HttpCacheType.DiskHttpCache)
     profile.setCachePath(PROFILE_DIR + "/cache")
     profile.setNotificationPresenter(handle_notification)
+    profile.downloadRequested.connect(handle_download)
 
     profile.setHttpUserAgent(
         "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
